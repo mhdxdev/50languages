@@ -16,10 +16,14 @@ import {
   Sparkles,
   Search,
   X,
+  ShieldCheck,
+  User as UserIcon,
 } from 'lucide-react';
 import { useLanguageLearning } from '@/context/LanguageLearningContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { LANGUAGES } from '@/data/languages';
 import { Language } from '@/types';
+import { UpgradeModal } from './UpgradeModal';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
@@ -35,8 +39,22 @@ export const Navbar: React.FC = () => {
     toggleDarkMode,
   } = useLanguageLearning();
 
+  const {
+    currentUser,
+    users,
+    setCurrentUser,
+    requests,
+    plans,
+  } = useSubscription();
+
   const [openSelector, setOpenSelector] = useState<'native' | 'target' | null>(null);
   const [langSearch, setLangSearch] = useState('');
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [openUserMenu, setOpenUserMenu] = useState(false);
+
+  const pendingRequestsCount = requests.filter((r) => r.status === 'pending').length;
+  const isPro = currentUser?.planId && currentUser.planId !== 'free';
+  const currentPlan = plans.find((p) => p.id === currentUser?.planId);
 
   const filteredLanguages = LANGUAGES.filter((l) => {
     const q = langSearch.toLowerCase();
@@ -141,7 +159,7 @@ export const Navbar: React.FC = () => {
             </div>
 
             {/* Right: Nav links, Stats & Theme toggle */}
-            <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
               <nav className="hidden lg:flex items-center gap-1">
                 <Link
                   href="/"
@@ -179,7 +197,112 @@ export const Navbar: React.FC = () => {
                     </span>
                   )}
                 </Link>
+
+                {/* Admin Portal Link */}
+                <Link
+                  href="/admin"
+                  className={`relative flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-colors ${
+                    pathname.startsWith('/admin')
+                      ? 'bg-purple-600 text-white shadow-sm'
+                      : 'text-purple-600 dark:text-purple-400 bg-purple-500/10 hover:bg-purple-500/20'
+                  }`}
+                  title="Subscription & SaaS Admin Panel"
+                >
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Admin Panel</span>
+                  {pendingRequestsCount > 0 && (
+                    <span className="px-1.5 py-0.5 text-[9px] font-black rounded-full bg-amber-500 text-slate-950 animate-pulse">
+                      {pendingRequestsCount}
+                    </span>
+                  )}
+                </Link>
               </nav>
+
+              {/* Upgrade / Subscription Status Button */}
+              <button
+                type="button"
+                onClick={() => setIsUpgradeModalOpen(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-sm ${
+                  isPro
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:brightness-110'
+                    : 'bg-gradient-to-r from-amber-500 via-brand-500 to-indigo-600 text-white hover:scale-105 shadow-brand-500/20'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{isPro ? (currentPlan?.name || 'Pro Active') : 'Upgrade Pro'}</span>
+              </button>
+
+              {/* Persona Switcher Menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setOpenUserMenu(!openUserMenu)}
+                  className="flex items-center gap-1.5 p-1 sm:px-2 sm:py-1 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
+                  title="Switch Persona / User Profile"
+                >
+                  <img
+                    src={currentUser?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                    alt={currentUser?.name}
+                    className="w-6 h-6 rounded-lg object-cover"
+                  />
+                  <span className="hidden xl:inline text-xs font-bold text-slate-700 dark:text-slate-300 max-w-[90px] truncate">
+                    {currentUser?.name?.split(' ')[0]}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 hidden sm:block" />
+                </button>
+
+                {openUserMenu && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-50 animate-fade-in">
+                    <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      <p className="text-xs font-black text-slate-900 dark:text-white truncate">
+                        {currentUser?.name}
+                      </p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                        {currentUser?.email}
+                      </p>
+                      <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-black rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 uppercase">
+                        Plan: {currentPlan?.name || 'Free'}
+                      </span>
+                    </div>
+
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-3 py-1">
+                      Test User Persona
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-0.5">
+                      {users.slice(0, 6).map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => {
+                            setCurrentUser(u);
+                            setOpenUserMenu(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left text-xs transition-colors ${
+                            u.id === currentUser?.id
+                              ? 'bg-brand-50 dark:bg-brand-500/10 text-brand-600 font-bold'
+                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}
+                        >
+                          <span className="truncate">{u.name}</span>
+                          <span className="text-[9px] font-mono text-slate-400 uppercase ml-1 flex-shrink-0">
+                            {u.planId}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 mt-1 border-t border-slate-100 dark:border-slate-800">
+                      <Link
+                        href="/admin"
+                        onClick={() => setOpenUserMenu(false)}
+                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40"
+                      >
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Go to Admin Panel</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Completed counter pill */}
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-xs font-bold">
@@ -227,8 +350,28 @@ export const Navbar: React.FC = () => {
             }`}
           >
             <Bookmark className="w-4 h-4" />
-            <span>Saved ({savedPhrases.length})</span>
+            <span>Saved</span>
           </Link>
+          <Link
+            href="/admin"
+            className={`flex items-center gap-1 py-1 px-3 rounded-lg ${
+              pathname.startsWith('/admin') ? 'text-purple-600 dark:text-purple-400' : 'text-purple-500'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" />
+            <span>Admin</span>
+            {pendingRequestsCount > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            )}
+          </Link>
+          <button
+            type="button"
+            onClick={() => setIsUpgradeModalOpen(true)}
+            className="flex items-center gap-1 py-1 px-2.5 rounded-lg bg-brand-600 text-white text-[11px]"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span>{isPro ? 'Pro' : 'Upgrade'}</span>
+          </button>
         </div>
       </header>
 
@@ -312,6 +455,11 @@ export const Navbar: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Upgrade & Pro Subscription Modal */}
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </>
   );
 };

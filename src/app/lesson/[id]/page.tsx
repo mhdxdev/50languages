@@ -20,11 +20,14 @@ import {
   Sparkles,
   HelpCircle,
   Share2,
+  Lock,
 } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 import { FlashcardDeck } from '@/components/FlashcardDeck';
 import { LessonQuiz } from '@/components/LessonQuiz';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { useLanguageLearning } from '@/context/LanguageLearningContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 import { LESSONS_CATALOG } from '@/data/lessonsCatalog';
 import { getPhrasesForLesson } from '@/data/phrasesData';
 import { Phrase } from '@/types';
@@ -46,6 +49,11 @@ export default function LessonWorkspacePage() {
     isPhraseSaved,
     toggleBookmarkPhrase,
   } = useLanguageLearning();
+
+  const { currentUser } = useSubscription();
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const isPro = currentUser?.planId && currentUser.planId !== 'free';
+  const isProNotice = !isPro && lessonId > 10;
 
   // Tab state: 'phrases' | 'flashcards' | 'quiz'
   const initialTab = (searchParams.get('tab') as 'phrases' | 'flashcards' | 'quiz') || 'phrases';
@@ -197,6 +205,32 @@ export default function LessonWorkspacePage() {
             </button>
           </div>
         </div>
+
+        {/* Pro Tier Learner Banner */}
+        {isProNotice && (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-brand-500/10 to-indigo-500/10 border border-amber-500/20 dark:border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-500 flex items-center justify-center flex-shrink-0">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
+                  Advanced Lesson {lessonId} — Pro Language Tier
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Upgrade to Pro to unlock all 100 lessons, HD offline audio, flashcards & priority tutor support.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-brand-600 text-white shadow-md shadow-brand-500/20 hover:scale-105 transition-all self-start sm:self-auto flex-shrink-0"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Upgrade to Pro</span>
+            </button>
+          </div>
+        )}
 
         {/* 3 Interactive Tabs */}
         <div className="flex items-center p-1 bg-slate-200/80 dark:bg-slate-900 rounded-2xl border border-slate-300 dark:border-slate-800 text-xs font-bold">
@@ -469,6 +503,11 @@ export default function LessonWorkspacePage() {
           )}
         </div>
       </main>
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+      />
     </div>
   );
 }

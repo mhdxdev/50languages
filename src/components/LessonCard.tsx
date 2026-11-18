@@ -9,9 +9,11 @@ import {
   HelpCircle,
   Play,
   Award,
+  Lock,
 } from 'lucide-react';
 import { Lesson } from '@/types';
 import { useLanguageLearning } from '@/context/LanguageLearningContext';
+import { useSubscription } from '@/context/SubscriptionContext';
 
 interface LessonCardProps {
   lesson: Lesson;
@@ -25,6 +27,10 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
     toggleLessonCompleted,
     quizScores,
   } = useLanguageLearning();
+
+  const { currentUser } = useSubscription();
+  const isPro = currentUser?.planId && currentUser.planId !== 'free';
+  const isProLocked = !isPro && lesson.number > 10;
 
   const completed = isLessonCompleted(lesson.id);
   const bestScore = quizScores[lesson.id];
@@ -67,6 +73,11 @@ export const LessonCard: React.FC<LessonCardProps> = ({ lesson }) => {
             <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {lesson.category}
             </span>
+            {isProLocked && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-gradient-to-r from-amber-500/20 to-brand-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                <Lock className="w-2.5 h-2.5" /> PRO
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">
